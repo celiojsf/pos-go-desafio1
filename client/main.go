@@ -43,6 +43,7 @@ func main() {
 	var cot CotacaoResponse
 	if err := json.Unmarshal(body, &cot); err != nil {
 		log.Println("Erro ao decodificar JSON:", err)
+		log.Println("Resposta:", string(body))
 		return
 	}
 

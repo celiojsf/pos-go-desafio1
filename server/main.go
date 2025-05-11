@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type Cotacao struct {
@@ -20,7 +20,7 @@ type APIResponse struct {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "./cotacoes.db")
+	db, err := sql.Open("sqlite", "./cotacoes.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func main() {
 		}
 
 		// Salvar no banco com timeout de 10ms
-		ctxDB, cancelDB := context.WithTimeout(r.Context(), 10*time.Millisecond)
+		ctxDB, cancelDB := context.WithTimeout(r.Context(), 50*time.Millisecond)
 		defer cancelDB()
 
 		query := "INSERT INTO cotacoes (bid) VALUES (?)"

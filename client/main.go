@@ -25,6 +25,10 @@ func main() {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			log.Println("Erro: contexto encerrado por timeout")
+			return
+		}
 		log.Println("Erro ao fazer requisição:", err)
 		return
 	}

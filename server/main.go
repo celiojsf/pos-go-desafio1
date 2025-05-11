@@ -38,8 +38,14 @@ func main() {
 		req, _ := http.NewRequestWithContext(ctxAPI, "GET", "https://economia.awesomeapi.com.br/json/last/USD-BRL", nil)
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
+			// Verifica se o erro foi causado por timeout do contexto
+			if ctxAPI.Err() == context.DeadlineExceeded {
+				log.Println("Erro: contexto encerrado por timeout ao chamar a API")
+				http.Error(w, "Erro ao obter cotação: timeout", http.StatusRequestTimeout)
+				return
+			}
 			log.Println("Erro na chamada da API:", err)
-			http.Error(w, "Erro ao obter cotação", http.StatusRequestTimeout)
+			http.Error(w, "Erro ao obter cotação", http.StatusInternalServerError)
 			return
 		}
 		defer res.Body.Close()
@@ -56,19 +62,17 @@ func main() {
 		defer cancelDB()
 
 		query := "INSERT INTO cotacoes (bid) VALUES (?)"
-		ch := make(chan error, 1)
-		go func() {
-			_, err := db.ExecContext(ctxDB, query, apiResp.USDBRL.Bid)
-			ch <- err
-		}()
-
-		select {
-		case <-ctxDB.Done():
-			log.Println("Timeout ao salvar no banco")
-		case err := <-ch:
-			if err != nil {
-				log.Println("Erro ao salvar no banco:", err)
+		_, err = db.ExecContext(ctxDB, query, apiResp.USDBRL.Bid)
+		if err != nil {
+			// Verifica se o erro foi causado por timeout do contexto
+			if ctxDB.Err() == context.DeadlineExceeded {
+				log.Println("Erro: contexto encerrado por timeout ao salvar no banco")
+				http.Error(w, "Erro ao obter cotação: timeout", http.StatusRequestTimeout)
+				return
 			}
+			log.Println("Erro ao salvar no banco:", err)
+			http.Error(w, "Erro ao salvar no banco", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
